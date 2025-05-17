@@ -1,0 +1,128 @@
+/* RTangClient 甜美奶白粉色主题 QSS */
+
+/* 主窗口背景 */
+#background {
+    background: qlineargradient(
+        x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFDEEF,
+        stop:1 #FFD6E8
+    );
+    border-radius: 12px;
+}
+
+/* 标题栏 */
+#titleBar {
+    background-color: #FFBEDA;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+/* 标题栏文字 */
+#titleLabel {
+    color: #7A3F57;
+    font-weight: bold;
+}
+
+/* 标题栏按钮 */
+#titleButton {
+    background: transparent;
+    color: #7A3F57;
+    border: none;
+    font-size: 14pt;
+    padding: 0 8px;
+    min-width: 20px;
+    min-height: 20px;
+    font-weight: bold;
+}
+
+#titleButton:hover {
+    background-color: #FFABC1;
+    border-radius: 6px;
+}
+
+/* 左侧侧边栏 */
+#sidebar {
+    background: qlineargradient(
+        x1:0, y1:0, x2:1, y2:0,
+        stop:0 #FFC0D7,
+        stop:1 #FFABC1
+    );
+    border-bottom-left-radius: 12px;
+    border-top-left-radius: 0px;
+    color: #7A3F57;
+}
+
+/* 右侧内容区 */
+#content {
+    background-color: #FFF0F6;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    color: #7A3F57;
+}
+
+/* 启动按钮 */
+#startButton {
+    background-color: #FFFFFF;
+    color: #FF8AAE;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 14pt;
+    transition: background-color 0.3s ease;
+    min-width: 180px;
+    min-height: 45px;
+    border: 2px solid #FF8AAE;
+}
+
+#startButton:hover:!disabled {
+    background-color: #FFE4F0;
+    color: #D94F76;
+    border-color: #D94F76;
+}
+
+#startButton:disabled {
+    background-color: #F8F0F4;
+    color: #FFC9D6;
+    border-color: #FFC9D6;
+}
+
+/* 进度条 */
+#progressBar {
+    border: 2px solid #FFFFFF;
+    border-radius: 10px;
+    background-color: #FFFFFF;
+    color: transparent;
+    min-width: 180px;
+    min-height: 45px;
+}
+
+#progressBar::chunk {
+    background-color: #FF8AAE;
+    border-radius: 10px;
+}
+
+/* 状态文字 */
+#statusLabel {
+    font-weight: bold;
+    color: #A05774;
+}
+
+/* logo 文字 fallback */
+QLabel {
+    color: #A05774;
+    font-weight: bold;
+}
+
+/* 右下角弹出提示框 */
+#toastLabel {
+    background-color: #FFABC1;
+    color: #7A3F57;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 12pt;
+    padding-left: 15px;
+    padding-right: 15px;
+    border: 1px solid #FF8AAE;
+    min-height: 40px;
+    min-width: 200px;
+    qproperty-alignment: 'AlignCenter';
+}
