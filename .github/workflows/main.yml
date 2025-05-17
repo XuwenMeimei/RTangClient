@@ -26,7 +26,7 @@ jobs:
 
       - name: 打包为 EXE
         run: |
-          pyinstaller --noconfirm --onefile --add-data "assets;assets" --add-data "styles;styles" main.py
+          pyinstaller --noconfirm --onefile --windowed --add-data "assets;assets" --add-data "styles;styles" main.py
 
       - name: 上传 EXE 到 Artifacts
         uses: actions/upload-artifact@v4
