@@ -1,0 +1,17 @@
+# PyInstaller
+dist/
+build/
+*.spec
+
+# 如果你用 pyinstaller --onefile，生成的单文件在 dist/，上面已包含
+
+# 其它常见的 Python 忽略项（可选）
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+env/
+venv/
+build.bat
