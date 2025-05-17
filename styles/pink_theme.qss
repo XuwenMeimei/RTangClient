@@ -123,6 +123,8 @@ QLabel {
     padding-right: 15px;
     border: 1px solid #FF8AAE;
     min-height: 40px;
-    min-width: 200px;
+    max-height: 40px;
+    min-width: 300px;
+    max-width: 300px;
     qproperty-alignment: 'AlignCenter';
 }
