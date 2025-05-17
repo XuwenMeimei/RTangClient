@@ -1,11 +1,20 @@
 import sys
 import time
+import os  # 新增
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton,
     QVBoxLayout, QHBoxLayout, QFrame, QProgressBar
 )
 from PySide6.QtGui import QPixmap, QFont, QMouseEvent, QGuiApplication
 from PySide6.QtCore import Qt, QPoint, QTimer, QPropertyAnimation, QEasingCurve
+
+
+# 新增：统一资源路径获取函数
+def resource_path(relative_path):
+    """获取资源文件的绝对路径，兼容PyInstaller打包和源码运行"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 
 class RTangClient(QWidget):
@@ -121,7 +130,8 @@ class RTangClient(QWidget):
         content_v_layout.setAlignment(Qt.AlignCenter)
 
         self.logo = QLabel()
-        pixmap = QPixmap("assets/logo.png")
+        # 修改：logo 路径
+        pixmap = QPixmap(resource_path("assets/logo.png"))
         if pixmap.isNull():
             self.logo.setText("[Logo]")
             QTimer.singleShot(0, lambda: self.show_toast("Logo 加载失败！"))
@@ -267,9 +277,9 @@ class RTangClient(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # 统一加载外部 qss 样式文件
+    # 统一加载外部 qss 样式文件，使用 resource_path
     try:
-        with open("styles/pink_theme.qss", "r", encoding="utf-8") as f:
+        with open(resource_path("styles/pink_theme.qss"), "r", encoding="utf-8") as f:
             app.setStyleSheet(f.read())
     except FileNotFoundError:
         print("Warning: styles/pink_theme.qss not found, running without style.")
