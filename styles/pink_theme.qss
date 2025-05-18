@@ -28,7 +28,7 @@
     background: transparent;
     color: #7A3F57;
     border: none;
-    font-size: 14pt;
+    /* font-size: 14pt; */
     padding: 0 8px;
     min-width: 20px;
     min-height: 20px;
@@ -47,16 +47,16 @@
         stop:0 #FFC0D7,
         stop:1 #FFABC1
     );
-    border-bottom-left-radius: 12px;
-    border-top-left-radius: 0px;
+    /* border-bottom-left-radius: 12px; */
+    /* border-top-left-radius: 0px; */
     color: #7A3F57;
 }
 
 /* 右侧内容区 */
 #content {
     background-color: #FFF0F6;
-    border-top-right-radius: 12px;
-    border-bottom-right-radius: 12px;
+    /* border-top-right-radius: 12px; */
+    /* border-bottom-right-radius: 12px; */
     color: #7A3F57;
 }
 
@@ -66,7 +66,7 @@
     color: #FF8AAE;
     border-radius: 10px;
     font-weight: bold;
-    font-size: 14pt;
+    /* font-size: 14pt; */
     transition: background-color 0.3s ease;
     min-width: 180px;
     min-height: 45px;
@@ -118,7 +118,7 @@ QLabel {
     color: #7A3F57;
     border-radius: 12px;
     font-weight: bold;
-    font-size: 12pt;
+    /* font-size: 12pt; */
     padding-left: 15px;
     padding-right: 15px;
     border: 1px solid #FF8AAE;
@@ -127,4 +127,31 @@ QLabel {
     min-width: 300px;
     max-width: 300px;
     qproperty-alignment: 'AlignCenter';
+}
+
+/* 导航按钮 */
+#navButton {
+    background: transparent;
+    color: #7A3F57;
+    border: none;
+    border-radius: 8px;
+    padding: 0 18px;
+    /* font-size: 12pt; */
+    font-weight: bold;
+}
+
+#navButton:checked {
+    background: #FFABC1;
+    color: #fff;
+}
+
+#navButton:hover {
+    background: #FFD6E8;
+}
+
+#navButton:disabled,
+#navButton:disabled:hover {
+    background: #FFABC1;
+    color: #fff;
+    cursor: default;
 }

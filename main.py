@@ -1,15 +1,22 @@
 import sys
-import os  # 新增
+import os
+os.environ["QT_SCALE_FACTOR"] = "1.5"
+os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+os.environ["QT_SCALE_FACTOR_ROUNDING_POLICY"] = "RoundPreferFloor"
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication
+
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QFrame, QProgressBar, QGraphicsOpacityEffect, QFileDialog
+    QVBoxLayout, QHBoxLayout, QFrame, QProgressBar, QGraphicsOpacityEffect, QFileDialog,
+    QStackedWidget, QTextEdit
 )
 from PySide6.QtGui import QPixmap, QFont, QMouseEvent, QGuiApplication, QFontMetrics, QPainter
 from PySide6.QtCore import Qt, QPoint, QTimer, QPropertyAnimation, QParallelAnimationGroup, QEasingCurve, QRect, QUrl
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 
-# 新增：统一资源路径获取函数
 def resource_path(relative_path):
     """获取资源文件的绝对路径，兼容PyInstaller打包和源码运行"""
     if hasattr(sys, '_MEIPASS'):
@@ -91,18 +98,43 @@ class RTangClient(QWidget):
         main_layout.setSpacing(0)
         self.init_title_bar(main_layout)
         self.init_content(main_layout)
-        self.init_music_controls(main_layout)  # 新增
+        self.init_music_controls(main_layout)
 
     def init_title_bar(self, main_layout):
         self.title_bar = QFrame()
         self.title_bar.setObjectName("titleBar")
-        self.title_bar.setFixedHeight(32)
+        self.title_bar.setFixedHeight(40)
         title_layout = QHBoxLayout(self.title_bar)
         title_layout.setContentsMargins(10, 0, 10, 0)
+        title_layout.setSpacing(10)
+
+        # 主页和设置按钮放到标题栏
+        self.btn_home = QPushButton("主页")
+        self.btn_home.setObjectName("navButton")
+        self.btn_home.setFixedHeight(28)
+        self.btn_home.setCheckable(True)
+        self.btn_home.clicked.connect(lambda: self.switch_page(0))
+
+        self.btn_settings = QPushButton("设置")
+        self.btn_settings.setObjectName("navButton")
+        self.btn_settings.setFixedHeight(28)
+        self.btn_settings.setCheckable(True)
+        self.btn_settings.clicked.connect(lambda: self.switch_page(1))
+
+        # 默认主页选中
+        self.btn_home.setChecked(True)
+        self.btn_settings.setChecked(False)
+        self.btn_home.setEnabled(False)
+        self.btn_settings.setEnabled(True)
 
         title_label = QLabel("RTangClient")
         title_label.setObjectName("titleLabel")
         title_label.setFont(QFont("Microsoft YaHei", 10))
+
+        title_layout.addWidget(self.btn_home)
+        title_layout.addWidget(self.btn_settings)
+        title_layout.addStretch()
+        title_layout.addWidget(title_label)
 
         minimize_button = QPushButton("➖")
         minimize_button.setObjectName("titleButton")
@@ -112,8 +144,6 @@ class RTangClient(QWidget):
         close_button.setObjectName("titleButton")
         close_button.clicked.connect(self.close)
 
-        title_layout.addWidget(title_label)
-        title_layout.addStretch()
         title_layout.addWidget(minimize_button)
         title_layout.addWidget(close_button)
         main_layout.addWidget(self.title_bar)
@@ -133,12 +163,13 @@ class RTangClient(QWidget):
         sidebar_layout = QVBoxLayout(self.sidebar)
         sidebar_layout.setContentsMargins(20, 30, 20, 30)
         sidebar_layout.setSpacing(20)
-        sidebar_layout.setAlignment(Qt.AlignBottom | Qt.AlignHCenter)  # 关键：底部对齐
+        sidebar_layout.setAlignment(Qt.AlignBottom | Qt.AlignHCenter)
 
         btn_layout = QVBoxLayout()
         btn_layout.setSpacing(10)
         btn_layout.setAlignment(Qt.AlignBottom | Qt.AlignHCenter)
 
+        # 移除主页和设置按钮，只保留启动和进度条
         self.start_button = QPushButton("启动游戏")
         self.start_button.setObjectName("startButton")
         self.start_button.setFixedWidth(self.BUTTON_WIDTH)
@@ -156,9 +187,8 @@ class RTangClient(QWidget):
         btn_layout.addWidget(self.start_button)
         btn_layout.addWidget(self.progress_bar)
 
-        # 保证sidebar_layout只加btn_layout
         sidebar_layout.addLayout(btn_layout)
-
+        self.sidebar.setLayout(sidebar_layout)
         content_layout.addWidget(self.sidebar)
 
     def init_main_content(self, content_layout):
@@ -166,32 +196,92 @@ class RTangClient(QWidget):
         self.content.setObjectName("content")
         content_v_layout = QVBoxLayout(self.content)
         content_v_layout.setContentsMargins(0, 0, 0, 0)
-        content_v_layout.setSpacing(20)
+        content_v_layout.setSpacing(0)
         content_v_layout.setAlignment(Qt.AlignCenter)
 
+        # 堆叠页面
+        self.stacked_widget = QStackedWidget(self.content)
+
+        # 主页
+        self.home_page = QWidget()
+        home_layout = QVBoxLayout(self.home_page)
         self.logo = QLabel()
         pixmap = QPixmap(resource_path("assets/logo.png"))
         if pixmap.isNull():
             self.logo.setText("[Logo]")
             QTimer.singleShot(0, lambda: self.show_toast("Logo 加载失败！"))
         else:
+            pixmap.setDevicePixelRatio(self.devicePixelRatioF())
             self.logo.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         self.logo.setAlignment(Qt.AlignCenter)
-        self.logo.hide()  # 隐藏logo
-
         self.status_label = QLabel("未登录")
         self.status_label.setObjectName("statusLabel")
         self.status_label.setFont(QFont("Microsoft YaHei", 16))
         self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.hide()  # 隐藏未登录
+        home_layout.addWidget(self.logo)
+        home_layout.addWidget(self.status_label)
+        home_layout.addStretch()
 
-        content_v_layout.addWidget(self.logo)
-        content_v_layout.addWidget(self.status_label)
-        content_v_layout.addStretch()
+        # 设置页
+        self.settings_page = QWidget()
+        settings_layout = QVBoxLayout(self.settings_page)
+        settings_label = QLabel("设置")
+        settings_label.setFont(QFont("Microsoft YaHei", 16))
+        settings_label.setAlignment(Qt.AlignCenter)
+        settings_layout.addWidget(settings_label)
+        settings_layout.addStretch()
+
+        self.stacked_widget.addWidget(self.home_page)
+        self.stacked_widget.addWidget(self.settings_page)
+        content_v_layout.addWidget(self.stacked_widget)
+        self.content.setLayout(content_v_layout)
         content_layout.addWidget(self.content)
 
+        self.stacked_widget.setCurrentIndex(0)
+
+    def switch_page(self, index):
+        current_index = self.stacked_widget.currentIndex()
+        if current_index == index:
+            return
+
+        # 先立即切换按钮选中状态和可用状态，保证UI及时刷新
+        self.btn_home.setChecked(index == 0)
+        self.btn_settings.setChecked(index == 1)
+        self.btn_home.setEnabled(index != 0)
+        self.btn_settings.setEnabled(index != 1)
+        QApplication.processEvents()  # 强制刷新UI
+
+        direction = 1 if index > current_index else -1
+        current_widget = self.stacked_widget.currentWidget()
+        next_widget = self.stacked_widget.widget(index)
+
+        w = self.stacked_widget.width()
+        h = self.stacked_widget.height()
+        next_widget.setGeometry(direction * w, 0, w, h)
+        next_widget.show()
+
+        anim_out = QPropertyAnimation(current_widget, b"pos", self)
+        anim_out.setDuration(300)
+        anim_out.setStartValue(current_widget.pos())
+        anim_out.setEndValue(QPoint(-direction * w, 0))
+        anim_out.setEasingCurve(QEasingCurve.OutCubic)
+
+        anim_in = QPropertyAnimation(next_widget, b"pos", self)
+        anim_in.setDuration(300)
+        anim_in.setStartValue(QPoint(direction * w, 0))
+        anim_in.setEndValue(QPoint(0, 0))
+        anim_in.setEasingCurve(QEasingCurve.OutCubic)
+
+        def on_finished():
+            self.stacked_widget.setCurrentIndex(index)
+            current_widget.move(0, 0)
+            next_widget.move(0, 0)
+
+        anim_in.finished.connect(on_finished)
+        anim_out.start()
+        anim_in.start()
+
     def init_music_controls(self, main_layout=None):
-        # 音乐播放器控件
         music_bar = QFrame()
         music_bar.setObjectName("musicBar")
         music_layout = QHBoxLayout(music_bar)
@@ -216,14 +306,12 @@ class RTangClient(QWidget):
         self.music_title = QLabel("未选择音乐")
         self.music_title.setMinimumWidth(120)
 
-        # 新增：进度条
         self.music_progress = QProgressBar()
         self.music_progress.setFixedWidth(120)
         self.music_progress.setRange(0, 100)
         self.music_progress.setValue(0)
         self.music_progress.setTextVisible(False)
 
-        # 新增：音乐动效图标
         self.music_icon = QLabel()
         icon_pixmap = QPixmap(resource_path("assets/music_icon.png"))
         if icon_pixmap.isNull():
@@ -246,24 +334,20 @@ class RTangClient(QWidget):
             main_layout.addWidget(music_bar)
         self.music_bar = music_bar
 
-        # 新增：进度与动效定时器
         self.music_timer = QTimer(self)
         self.music_timer.timeout.connect(self.update_music_progress)
         self._rotation_angle = 0
         self._icon_animating = False
 
-        # 连接播放器信号
         self.player.positionChanged.connect(self.on_position_changed)
         self.player.durationChanged.connect(self.on_duration_changed)
         self.player.playbackStateChanged.connect(self.on_playback_state_changed)
 
     def start_game(self):
         self.start_button.setEnabled(False)
-        self.start_button.hide()  # 隐藏按钮
-
+        self.start_button.hide()
         self.progress_bar.setValue(0)
-        self.progress_bar.show()  # 显示进度条
-
+        self.progress_bar.show()
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_progress)
         self.timer.start(10)
@@ -274,23 +358,21 @@ class RTangClient(QWidget):
             self.progress_bar.setValue(value + 5)
         else:
             self.timer.stop()
-            self.progress_bar.hide()  # 隐藏进度条
+            self.progress_bar.hide()
             self.start_button.setText("启动游戏")
             self.start_button.setEnabled(True)
-            self.start_button.show()  # 恢复按钮显示
+            self.start_button.show()
             self.show_toast("启动完成！")
 
     def show_toast(self, message: str):
         margin = self.TOAST_MARGIN
         spacing = self.TOAST_SPACING
-        toast_width = 300  # 与QSS一致
+        toast_width = 300
 
-        # 用 QFontMetrics 计算实际宽度，超出则加省略号
         font = QFont("Microsoft YaHei", 12)
         metrics = QFontMetrics(font)
-        elided_message = metrics.elidedText(message, Qt.ElideRight, toast_width - 30)  # 预留padding
+        elided_message = metrics.elidedText(message, Qt.ElideRight, toast_width - 30)
 
-        # 超出最大数量时，优雅淡出最早的toast
         while len(self._active_toasts) >= self.MAX_TOASTS:
             old_toast = self._active_toasts.pop(-1)
             self._fade_out_toast(old_toast, rearrange=True)
@@ -310,13 +392,11 @@ class RTangClient(QWidget):
 
         start_x = self.width() - toast.width() - margin
 
-        # 计算最大可用y，避免覆盖标题栏
         title_bar_height = self.title_bar.height() if hasattr(self, "title_bar") else 32
         min_y = title_bar_height + margin
         max_y = self.height() - toast.height() - margin
         start_y = max(min_y, max_y)
 
-        # 现有toast全部上移
         for idx, t in enumerate(self._active_toasts):
             target_y = max(
                 min_y,
@@ -328,10 +408,7 @@ class RTangClient(QWidget):
         toast.show()
         self._active_toasts.insert(0, toast)
 
-        # 入场动画
         self._move_toast(toast, start_x, start_y, duration=self.TOAST_ANIM_DURATION)
-
-        # 定时淡出
         QTimer.singleShot(self.TOAST_LIFETIME, lambda: self._fade_out_toast(toast))
 
     def _move_toast(self, toast, x, y, duration=200):
@@ -340,7 +417,7 @@ class RTangClient(QWidget):
         anim.setStartValue(toast.pos())
         anim.setEndValue(QPoint(x, y))
         anim.setEasingCurve(QEasingCurve.OutQuad)
-        toast._move_anim = anim  # 强引用防止GC
+        toast._move_anim = anim
         anim.start()
 
     def _fade_out_toast(self, toast, rearrange=False):
@@ -348,20 +425,12 @@ class RTangClient(QWidget):
             return
         toast._is_fading = True
 
-        # 先隐藏文字内容
         toast.setText("")
-
-        # 锁定绝对位置，防止布局影响
         toast.setParent(self)
         toast.setGeometry(toast.geometry())
-
-        # 可选：移除阴影和边框，防止缩小时锯齿或残影
         toast.setStyleSheet("border: none; background-color: #FFABC1; border-radius: 12px;")
-
-        # 更快的动画时长
         duration = 250
 
-        # 淡出动画
         effect = QGraphicsOpacityEffect(toast)
         toast.setGraphicsEffect(effect)
         anim_fade = QPropertyAnimation(effect, b"opacity", toast)
@@ -370,12 +439,11 @@ class RTangClient(QWidget):
         anim_fade.setEndValue(0.0)
         anim_fade.setEasingCurve(QEasingCurve.OutCubic)
 
-        # 只缩小宽度，高度不变
         start_geom = toast.geometry()
         center = start_geom.center()
         shrink_ratio = 0.5
         end_width = max(1, int(start_geom.width() * shrink_ratio))
-        end_height = start_geom.height()  # 高度不变
+        end_height = start_geom.height()
         end_geom = QRect(
             center.x() - end_width // 2,
             center.y() - end_height // 2,
@@ -388,7 +456,6 @@ class RTangClient(QWidget):
         anim_geom.setEndValue(end_geom)
         anim_geom.setEasingCurve(QEasingCurve.OutCubic)
 
-        # 并行动画
         group = QParallelAnimationGroup(toast)
         group.addAnimation(anim_fade)
         group.addAnimation(anim_geom)
@@ -405,7 +472,6 @@ class RTangClient(QWidget):
         group.start()
 
     def _rearrange_toasts(self):
-        """重新排列剩余toast的位置"""
         margin = self.TOAST_MARGIN
         spacing = self.TOAST_SPACING
         for idx, t in enumerate(self._active_toasts):
@@ -424,74 +490,6 @@ class RTangClient(QWidget):
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         self._old_pos = None
-
-    def init_music_controls(self, main_layout=None):
-        # 音乐播放器控件
-        music_bar = QFrame()
-        music_bar.setObjectName("musicBar")
-        music_layout = QHBoxLayout(music_bar)
-        music_layout.setContentsMargins(20, 5, 20, 5)
-        music_layout.setSpacing(10)
-
-        self.btn_select_folder = QPushButton("选择音乐文件夹")
-        self.btn_select_folder.clicked.connect(self.select_music_folder)
-
-        self.btn_prev = QPushButton("⏮")
-        self.btn_prev.clicked.connect(self.play_prev_music)
-        self.btn_prev.setEnabled(False)
-
-        self.btn_play = QPushButton("▶️")
-        self.btn_play.clicked.connect(self.toggle_play_pause)
-        self.btn_play.setEnabled(False)
-
-        self.btn_next = QPushButton("⏭")
-        self.btn_next.clicked.connect(self.play_next_music)
-        self.btn_next.setEnabled(False)
-
-        self.music_title = QLabel("未选择音乐")
-        self.music_title.setMinimumWidth(120)
-
-        # 新增：进度条
-        self.music_progress = QProgressBar()
-        self.music_progress.setFixedWidth(120)
-        self.music_progress.setRange(0, 100)
-        self.music_progress.setValue(0)
-        self.music_progress.setTextVisible(False)
-
-        # 新增：音乐动效图标
-        self.music_icon = QLabel()
-        icon_pixmap = QPixmap(resource_path("assets/music_icon.png"))
-        if icon_pixmap.isNull():
-            self.music_icon.setText("🎵")
-        else:
-            self.music_icon.setPixmap(icon_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        self.music_icon.setFixedSize(32, 32)
-        self.music_icon.setAlignment(Qt.AlignCenter)
-
-        music_layout.addWidget(self.music_icon)
-        music_layout.addWidget(self.btn_select_folder)
-        music_layout.addWidget(self.btn_prev)
-        music_layout.addWidget(self.btn_play)
-        music_layout.addWidget(self.btn_next)
-        music_layout.addWidget(self.music_title)
-        music_layout.addWidget(self.music_progress)
-        music_layout.addStretch()
-
-        # main_layout 为空时不添加（__init__时调用）
-        if main_layout:
-            main_layout.addWidget(music_bar)
-        self.music_bar = music_bar
-
-        # 新增：进度与动效定时器
-        self.music_timer = QTimer(self)
-        self.music_timer.timeout.connect(self.update_music_progress)
-        self._rotation_angle = 0
-        self._icon_animating = False
-
-        # 连接播放器信号
-        self.player.positionChanged.connect(self.on_position_changed)
-        self.player.durationChanged.connect(self.on_duration_changed)
-        self.player.playbackStateChanged.connect(self.on_playback_state_changed)
 
     def select_music_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "选择音乐文件夹", os.path.expanduser("~"))
@@ -551,7 +549,6 @@ class RTangClient(QWidget):
             self.start_music_icon_animation()
 
     def on_position_changed(self, position):
-        # position 单位为毫秒
         duration = self.player.duration()
         if duration > 0:
             percent = int(position * 100 / duration)
@@ -560,11 +557,9 @@ class RTangClient(QWidget):
             self.music_progress.setValue(0)
 
     def on_duration_changed(self, duration):
-        # 可用于重置进度条
         self.music_progress.setValue(0)
 
     def update_music_progress(self):
-        # 旋转音乐图标
         if self._icon_animating:
             self._rotation_angle = (self._rotation_angle + 10) % 360
             self.rotate_music_icon(self._rotation_angle)
@@ -581,7 +576,6 @@ class RTangClient(QWidget):
             self.rotate_music_icon(0)
 
     def rotate_music_icon(self, angle):
-        # 仅对pixmap旋转，emoji不处理
         pixmap = self.music_icon.pixmap()
         if pixmap:
             transform = QPixmap(pixmap.size())
@@ -616,10 +610,10 @@ class RTangClient(QWidget):
         self.music_index = (self.music_index + 1) % len(self.music_files)
         self.play_music(self.music_index)
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # 统一加载外部 qss 样式文件，使用 resource_path
     try:
         with open(resource_path("styles/pink_theme.qss"), "r", encoding="utf-8") as f:
             app.setStyleSheet(f.read())
@@ -628,53 +622,5 @@ if __name__ == "__main__":
 
     win = RTangClient()
     win.show()
-
-    def show_random_toasts():
-        # 中英文故事片段库
-        story_snippets = [
-            "从前有座山，山里有座庙，庙里有个老和尚在给小和尚讲故事。",
-            "小明走进了神秘的森林，发现了一只会说话的狐狸。",
-            "夜深了，窗外下起了大雨，妈妈给我讲了一个温暖的童话。",
-            "小兔子和小熊一起去采蘑菇，结果迷路了。",
-            "有一天，乌龟和兔子决定再比一次赛跑。",
-            "小猫咪第一次见到雪，高兴地在院子里打滚。",
-            "爷爷年轻时曾经救过一只受伤的小鸟。",
-            "小朋友们在操场上快乐地放风筝。",
-            "月亮悄悄爬上了树梢，星星眨着眼睛看着大地。",
-            "小鸭子跟着妈妈学游泳，扑通一声掉进了水里。",
-            "冬天到了，雪花像小精灵一样在空中飞舞。",
-            "小熊学会了自己做蜂蜜蛋糕，邀请朋友们来品尝。",
-            "有一只小狗总是喜欢追着自己的尾巴转圈。",
-            "春天来了，花儿都开了，蝴蝶在花间飞舞。",
-            "小猴子爬上了最高的树，看见了远处的彩虹。",
-            "小朋友们围坐在篝火旁，听老师讲神奇的故事。",
-            "小鹿在森林里遇见了新朋友小松鼠。",
-            "夜晚的湖面像一面镜子，倒映着满天的星星。",
-            "小猪学会了自己整理房间，妈妈夸他长大了。",
-            "有一天，小鱼游出了池塘，开始了奇妙的冒险。",
-            # 英文句子
-            "Once upon a time, there was a mountain, and on the mountain there was a temple.",
-            "The little rabbit and the little bear went to pick mushrooms and got lost.",
-            "It was a rainy night, and mom told me a warm fairy tale.",
-            "The kitten saw snow for the first time and rolled happily in the yard.",
-            "Grandpa once saved an injured bird when he was young.",
-            "Children are happily flying kites on the playground.",
-            "The moon quietly climbed up the treetop, and the stars blinked at the earth.",
-            "The little duck followed its mother to learn swimming and fell into the water with a splash.",
-            "In winter, snowflakes dance in the air like little elves.",
-            "The little bear learned to make honey cake and invited friends to taste it.",
-            "A little dog always likes to chase its own tail in circles.",
-            "Spring has come, flowers are blooming, and butterflies are flying among the flowers.",
-            "The little monkey climbed to the highest tree and saw a rainbow in the distance.",
-            "Children sat around the campfire, listening to the teacher tell magical stories.",
-            "The little deer met a new friend, the little squirrel, in the forest.",
-            "At night, the surface of the lake was like a mirror, reflecting the starry sky.",
-            "The little pig learned to tidy up his room, and his mother praised him for growing up.",
-            "One day, the little fish swam out of the pond and started a wonderful adventure."
-        ]
-        for i, snippet in enumerate(story_snippets):
-            QTimer.singleShot(i * 400, lambda m=snippet: win.show_toast(m))
-
-    #show_random_toasts()
 
     sys.exit(app.exec())
